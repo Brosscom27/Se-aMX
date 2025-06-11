@@ -33,10 +33,13 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 
+// Muestra la pantalla con la cámara
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraScreen(navController: NavController) {
     val context = LocalContext.current
+
+    // Estado que indica si se tiene permiso de cámara
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -45,14 +48,20 @@ fun CameraScreen(navController: NavController) {
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+
+    // Lanza el permiso de cámara al usuario
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted -> hasCameraPermission = granted }
     )
 
+    // Estado para saber si se debe capturar una foto
     var capturarFoto by remember { mutableStateOf(false) }
+
+    // Almacena la imagen capturada como Bitmap
     var imagenCapturada by remember { mutableStateOf<Bitmap?>(null) }
 
+    // Estructura visual con barra superior e inferior
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,7 +79,7 @@ fun CameraScreen(navController: NavController) {
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController)
+            BottomNavigationBar(navController) // Barra de navegación inferior
         },
         content = { padding ->
             Column(
@@ -81,6 +90,7 @@ fun CameraScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (hasCameraPermission) {
+                    // Caja que contiene la cámara
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -98,11 +108,15 @@ fun CameraScreen(navController: NavController) {
                             }
                         )
                     }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botón para capturar la imagen
                     Button(onClick = { capturarFoto = true }) {
                         Text("Capturar letra")
                     }
 
+                    // Mostrar imagen capturada si existe
                     imagenCapturada?.let { bitmap ->
                         Spacer(modifier = Modifier.height(16.dp))
                         AndroidView(
@@ -117,6 +131,7 @@ fun CameraScreen(navController: NavController) {
                     }
 
                 } else {
+                    // Mostrar mensaje si no hay permisos
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Se requiere permiso para acceder a la cámara.")
                     Spacer(modifier = Modifier.height(16.dp))
@@ -136,8 +151,9 @@ fun CameraPreview(
     onFotoProcesada: (String) -> Unit,
     onImagenCapturada: (Bitmap) -> Unit
 ) {
-    val previewView = remember { PreviewView(context) }
+    val previewView = remember { PreviewView(context) } // Vista de la cámara
 
+    // Mostrar cámara en un AndroidView
     AndroidView(factory = {
         previewView.apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -149,10 +165,12 @@ fun CameraPreview(
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
 
+                // Configurar el preview de la cámara
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
+                // Configurar análisis de imagen
                 val analyzer = ImageAnalysis.Builder()
                     .setTargetResolution(Size(640, 480))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -167,6 +185,7 @@ fun CameraPreview(
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
                 try {
+                    // Desvincular y vincular nuevamente la cámara
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
                         context as LifecycleOwner,
@@ -183,6 +202,7 @@ fun CameraPreview(
     })
 }
 
+// Implementa el análisis de cada frame de la cámara
 class MyImageAnalyzer(
     private val context: Context,
     private val capturarFoto: State<Boolean>,
@@ -190,6 +210,7 @@ class MyImageAnalyzer(
     private val onImagenCapturada: (Bitmap) -> Unit
 ) : ImageAnalysis.Analyzer {
 
+    // Cargar el modelo de TensorFlow Lite
     private val interpreter: Interpreter by lazy {
         val afd = context.assets.openFd("lenguajeSenas.tflite")
         val inputStream = afd.createInputStream()
@@ -198,55 +219,59 @@ class MyImageAnalyzer(
         Interpreter(modelBuffer)
     }
 
+    // Etiquetas del modelo
     private val labels = listOf(
         "A", "B", "C", "D", "E", "F", "G", "H",
         "I", "J", "M", "N", "O", "P",
         "Q", "R", "S", "T", "U", "V", "W", "X"
     )
 
+    // Ejecuta en cada frame de la cámara
     override fun analyze(image: ImageProxy) {
+        // Si no se solicitó capturar foto, cerrar imagen y salir
         if (!capturarFoto.value) {
             image.close()
             return
         }
 
         try {
-            val bitmap = image.toBitmap()
+            val bitmap = image.toBitmap() // Convertir imagen a bitmap
 
-            // 🔄 Convertir a HSV, binarizar, y redimensionar
+            // Procesar la imagen: convertir a binario HSV, redimensionar
             val hsvBinary = bitmap.toHSVBinary()
             val resized = Bitmap.createScaledBitmap(hsvBinary, 40, 40, true)
 
-            // Mostrar imagen binarizada
+            // Mostrar imagen al usuario
             onImagenCapturada(resized)
 
-            // Preparar buffer de entrada
+            // Crear buffer para entrada del modelo
             val inputBuffer = ByteBuffer.allocateDirect(40 * 40 * 4).order(ByteOrder.nativeOrder())
             for (y in 0 until 40) {
                 for (x in 0 until 40) {
                     val pixel = resized.getPixel(x, y)
-                    val gray = if (Color.red(pixel) == 0) 0f else 1f
+                    val gray = if (Color.red(pixel) == 0) 0f else 1f // Binarización
                     inputBuffer.putFloat(gray)
                 }
             }
 
-            val output = Array(1) { FloatArray(24) }
-            interpreter.run(inputBuffer, output)
+            val output = Array(1) { FloatArray(24) } // Salida del modelo
+            interpreter.run(inputBuffer, output) // Ejecutar modelo
 
             val pred = output[0]
-            val maxIndex = pred.indices.maxByOrNull { pred[it] } ?: -1
-            val letter = labels.getOrNull(maxIndex) ?: "?"
+            val maxIndex = pred.indices.maxByOrNull { pred[it] } ?: -1 // Índice con mayor probabilidad
+            val letter = labels.getOrNull(maxIndex) ?: "?" // Obtener letra
 
-            onLetraDetectada(letter)
+            onLetraDetectada(letter) // Devolver letra detectada
 
         } catch (e: Exception) {
             Log.e("MyImageAnalyzer", "Error en análisis", e)
         } finally {
-            image.close()
+            image.close() // Siempre cerrar el frame
         }
     }
 }
 
+// Extensión para convertir un ImageProxy a Bitmap
 fun ImageProxy.toBitmap(): Bitmap {
     val yBuffer = planes[0].buffer
     val vuBuffer = planes[2].buffer
@@ -258,6 +283,7 @@ fun ImageProxy.toBitmap(): Bitmap {
     yBuffer.get(nv21, 0, ySize)
     vuBuffer.get(nv21, ySize, vuSize)
 
+    // Convertir el array NV21 a imagen JPEG y luego a Bitmap
     val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
     val out = ByteArrayOutputStream()
     yuvImage.compressToJpeg(Rect(0, 0, width, height), 90, out)
@@ -265,6 +291,7 @@ fun ImageProxy.toBitmap(): Bitmap {
     val imageBytes = out.toByteArray()
     val originalBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 
+    // Rotar la imagen si es necesario
     val matrix = Matrix().apply {
         postRotate(imageInfo.rotationDegrees.toFloat())
     }
@@ -272,6 +299,7 @@ fun ImageProxy.toBitmap(): Bitmap {
     return Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true)
 }
 
+// Extensión para convertir un Bitmap a imagen binarizada en HSV
 fun Bitmap.toHSVBinary(threshold: Float = 0.5f): Bitmap {
     val width = this.width
     val height = this.height
@@ -282,9 +310,9 @@ fun Bitmap.toHSVBinary(threshold: Float = 0.5f): Bitmap {
         for (x in 0 until width) {
             val pixel = getPixel(x, y)
             Color.colorToHSV(pixel, hsv)
-            val v = hsv[2] // Canal de valor
+            val v = hsv[2] // Canal de luminosidad
 
-            // Invertimos: fondo oscuro, mano blanca
+            // Si la luminosidad es mayor al umbral es negro, si no blanco
             val color = if (v > threshold) Color.BLACK else Color.WHITE
             binaryBitmap.setPixel(x, y, color)
         }
@@ -292,3 +320,4 @@ fun Bitmap.toHSVBinary(threshold: Float = 0.5f): Bitmap {
 
     return binaryBitmap
 }
+

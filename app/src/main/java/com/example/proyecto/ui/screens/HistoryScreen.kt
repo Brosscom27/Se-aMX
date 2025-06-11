@@ -18,9 +18,12 @@ import com.example.proyecto.ui.navigation.BottomNavigationBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(navController: NavController) {
+    // Se obtiene el historial
     val historyItems = remember { HistoryRepository.getHistory() }
+    // Se guarda el estado para permitir actualizaciones
     var items by remember { mutableStateOf(historyItems) }
 
+    // Estructura principal de la pantalla
     Scaffold(
         topBar = {
             TopAppBar(
@@ -37,25 +40,27 @@ fun HistoryScreen(navController: NavController) {
                 )
             )
         },
+        // Botón flotante para borarr el último elemento
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    val updatedItems = items.toMutableList()
-                    updatedItems.removeLastOrNull()
-                    items = updatedItems
-                    HistoryRepository.setHistory(updatedItems)
+                    val updatedItems = items.toMutableList() // Se crea una copia mutable de la lista
+                    updatedItems.removeLastOrNull() // Elimina el último elemento si existe
+                    items = updatedItems // Actualiza el estado
+                    HistoryRepository.setHistory(updatedItems) // Actualiza el historial
                 },
                 containerColor = MaterialTheme.colorScheme.secondary
             ) {
                 Icon(Icons.Default.Delete, contentDescription = "Eliminar último")
             }
         },
+        // Barra inferior con botón para borar todote
         bottomBar = {
             Column {
                 Button(
                     onClick = {
-                        HistoryRepository.clearHistory()
-                        items = emptyList()
+                        HistoryRepository.clearHistory() // Limpia el historial
+                        items = emptyList() // Limpia la lista local
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -66,6 +71,7 @@ fun HistoryScreen(navController: NavController) {
                 BottomNavigationBar(navController)
             }
         },
+        // Contenido principal de la pantalla
         content = { padding ->
             Column(
                 modifier = Modifier
@@ -73,13 +79,15 @@ fun HistoryScreen(navController: NavController) {
                     .padding(padding)
                     .padding(horizontal = 16.dp)
             ) {
+                // Lista para mostrar los ítems del historial
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(items) { item ->
                         Text(text = item, style = MaterialTheme.typography.bodyLarge)
-                        Divider()
+                        Divider() // Línea divisoria entre ítems
                     }
                 }
             }
         }
     )
 }
+
