@@ -18,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.graphics.Color as AndroidColor
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
+import androidx.compose.foundation.background
 
 // Muestra la pantalla con la cámara
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,8 +64,11 @@ fun CameraScreen(navController: NavController) {
     // Almacena la imagen capturada como Bitmap
     var imagenCapturada by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Estructura visual con barra superior e inferior
+    // Accede a los colores definidos en el tema
+    val colors = MaterialTheme.colorScheme
+
     Scaffold(
+        containerColor = colors.background, // usa el color de fondo del tema
         topBar = {
             TopAppBar(
                 title = {
@@ -73,13 +79,13 @@ fun CameraScreen(navController: NavController) {
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = colors.primary, // azul oscuro
+                    titleContentColor = colors.onPrimary // color de texto
                 )
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController) // Barra de navegación inferior
+            BottomNavigationBar(navController) // Barra inferior
         },
         content = { padding ->
             Column(
@@ -90,7 +96,6 @@ fun CameraScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (hasCameraPermission) {
-                    // Caja que contiene la cámara
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -111,17 +116,21 @@ fun CameraScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botón para capturar la imagen
-                    Button(onClick = { capturarFoto = true }) {
+                    Button(
+                        onClick = { capturarFoto = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.onPrimary
+                        )
+                    ) {
                         Text("Capturar letra")
                     }
 
-                    // Mostrar imagen capturada si existe
                     imagenCapturada?.let { bitmap ->
                         Spacer(modifier = Modifier.height(16.dp))
                         AndroidView(
-                            factory = { context ->
-                                android.widget.ImageView(context).apply {
+                            factory = { ctx ->
+                                android.widget.ImageView(ctx).apply {
                                     setImageBitmap(bitmap)
                                     layoutParams = FrameLayout.LayoutParams(200, 200)
                                     scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
@@ -129,13 +138,17 @@ fun CameraScreen(navController: NavController) {
                             }
                         )
                     }
-
                 } else {
-                    // Mostrar mensaje si no hay permisos
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Se requiere permiso para acceder a la cámara.")
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
+                    Button(
+                        onClick = { launcher.launch(Manifest.permission.CAMERA) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.onPrimary
+                        )
+                    ) {
                         Text("Solicitar permiso")
                     }
                 }
@@ -143,6 +156,7 @@ fun CameraScreen(navController: NavController) {
         }
     )
 }
+
 
 @Composable
 fun CameraPreview(

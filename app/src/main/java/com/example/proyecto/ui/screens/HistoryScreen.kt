@@ -25,6 +25,8 @@ fun HistoryScreen(navController: NavController) {
 
     // Estructura principal de la pantalla
     Scaffold(
+        // Fondo azul claro para toda la pantalla
+        containerColor = Color(0xFFd6eefc),
         topBar = {
             TopAppBar(
                 title = {
@@ -35,12 +37,12 @@ fun HistoryScreen(navController: NavController) {
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = Color(0xFF0175bb), // azul de los botones
                     titleContentColor = Color.White
                 )
             )
         },
-        // Botón flotante para borarr el último elemento
+        // Botón flotante para borrar el último elemento
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -49,12 +51,13 @@ fun HistoryScreen(navController: NavController) {
                     items = updatedItems // Actualiza el estado
                     HistoryRepository.setHistory(updatedItems) // Actualiza el historial
                 },
-                containerColor = MaterialTheme.colorScheme.secondary
+                containerColor = Color(0xFF0175bb), // azul de los botones
+                contentColor = Color.White
             ) {
                 Icon(Icons.Default.Delete, contentDescription = "Eliminar último")
             }
         },
-        // Barra inferior con botón para borar todote
+        // Barra inferior con botón para borrar todo
         bottomBar = {
             Column {
                 Button(
@@ -64,7 +67,11 @@ fun HistoryScreen(navController: NavController) {
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0175bb), // azul de los botones
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Borrar todo")
                 }
@@ -90,4 +97,6 @@ fun HistoryScreen(navController: NavController) {
         }
     )
 }
+
+
 
