@@ -263,7 +263,8 @@ class MyImageAnalyzer(
             for (y in 0 until 40) {
                 for (x in 0 until 40) {
                     val pixel = resized.getPixel(x, y)
-                    val gray = if (Color.red(pixel) == 0) 0f else 1f // Binarización
+                    val gray = if (AndroidColor.red(pixel) == 0) 0f else 1f
+                    //val gray = if (Color.red(pixel) == 0) 0f else 1f // Binarización
                     inputBuffer.putFloat(gray)
                 }
             }
@@ -323,11 +324,12 @@ fun Bitmap.toHSVBinary(threshold: Float = 0.5f): Bitmap {
     for (y in 0 until height) {
         for (x in 0 until width) {
             val pixel = getPixel(x, y)
-            Color.colorToHSV(pixel, hsv)
+            AndroidColor.colorToHSV(pixel, hsv)
+            //Color.colorToHSV(pixel, hsv)
             val v = hsv[2] // Canal de luminosidad
 
             // Si la luminosidad es mayor al umbral es negro, si no blanco
-            val color = if (v > threshold) Color.BLACK else Color.WHITE
+            val color = if (v > threshold) AndroidColor.BLACK else AndroidColor.WHITE
             binaryBitmap.setPixel(x, y, color)
         }
     }
